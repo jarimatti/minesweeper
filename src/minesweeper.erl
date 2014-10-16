@@ -1,15 +1,20 @@
 %%% A minesweeper game.
 -module(minesweeper).
 
--export([start_game/3]).
+-export([start_game/4,
+         make_pos/2,
+         get_cell/2,
+         board_neighbours/2,
+         count_mines/1]).
 
 -ifdef('TEST').
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%--------------------------------------------------------------------
 %% Data Definitions
+%%--------------------------------------------------------------------
 
 %% Cell is one of:
 %% - atom empty
@@ -49,29 +54,57 @@ make_pos(Row, Col) when 0 < Row, Row =< 30, 0 < Col, Col =< 30 ->
 %% interp. the state at the end of the game with the board.
 -type result() :: {victory | defeat, board()}.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% User input is one of:
+%%  - {mark, Pos}
+%%  - {open, Pos}
+%%  - quit
+%% interp. {mark, Pos} marks the position as a mine
+%%         {open, Pos} opens the position
+%%         quit quits the game
+-type input() :: quit | {mark, pos()} | {open, pos()}.
+
+%% IO is a tuple of
+%%  - show_board/2
+%%  - user_input/0
+%% interp. show_board/2 displays the board to the user
+%%         user_input/0 gets the user input
+-type io() :: {fun((board(), sets:set(pos())) -> ok), fun(() -> input())}.
+
+%%--------------------------------------------------------------------
 %% Public Functions (API)
+%%--------------------------------------------------------------------
 
 %% Produce the game result
--spec start_game(row(), col(), mine_prob()) -> result().
-start_game(N, M, P) ->
+-spec start_game(row(), col(), mine_prob(), io()) -> result().
+start_game(N, M, P, IO) ->
     Board = create_board(N, M, P),
-    play(Board, sets:new()).
+    play(Board, sets:new(), IO).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%--------------------------------------------------------------------
 %% Private Functions
+%%--------------------------------------------------------------------
 
 %% Play the game until quit, defeated or won.
 %% Caution: side effects.
--spec play(board(), sets:set(pos())) -> result().
-play(Board, Visible) ->
-    show_board(Board, Visible),
-    Pos = ask_coordinates(),
-    %% TODO: Simplify by adding Pos to Visible, then modify
-    %% is_victory to return one of victory, defeat, keep_playing.
+-spec play(board(), sets:set(pos()), io()) -> result().
+play(Board, Visible, IO) ->
+    IO:show_board(Board, Visible),
+    case IO:get_input() of
+        quit ->
+            ok;
+        {open, Pos} ->
+            open_pos(Board, Pos, Visible, IO);
+        {mark, Pos} ->
+            mark_pos(Board, Pos, Visible, IO)
+    end.
+
+%% Open a position in the board, return game result.
+%% Note: mutual recursion with play/2.
+-spec open_pos(board(), pos(), sets:set(pos()), io()) -> result().
+open_pos(Board, Pos, Visible, IO) ->
     case get_cell(Board, Pos) of
         mine ->
-            show_board(Board, sets:from_list(board_all_positions(Board))),
+            IO:show_board(Board, sets:from_list(board_all_positions(Board))),
             {defeat, Board};
         empty ->
             Exposed = compute_visible(Board, Visible, Pos),
@@ -79,62 +112,16 @@ play(Board, Visible) ->
                 true ->
                     {victory, Board};
                 false ->
-                    play(Board, Exposed)
+                    play(Board, Exposed, IO)
             end
     end.
 
-%% Print the visible cells in the board.
--spec show_board(board(), sets:set(pos())) -> ok.
-show_board(Board, Visible) ->
-    io:format(format_board(Board, Visible)).
-
-%% Produce a multi-line string representation of the visible board.
--spec format_board(board(), sets:set(pos())) -> string().
-format_board(Board = {Rows, _Cols, _Data}, Visible) ->
-    lists:flatmap(fun (Row) ->
-                          format_line(Row, Board, Visible) ++ "\n"
-                  end,
-                  lists:seq(1, Rows)).
-
--ifdef('TEST').
-
-format_board_test() ->
-    Board = {2, 3, [empty, empty, empty,
-                    empty, empty, mine]},
-    Visible = sets:from_list([make_pos(1,1), make_pos(1,2), make_pos(1,3),
-                              make_pos(2,1), make_pos(2,2)]),
-    Expected = ".11\n.1#\n",
-    Actual = format_board(Board, Visible),
-    ?assertEqual(Expected, Actual).
-
--endif.
-
-%% Produce a string from a row in the board.
--spec format_line(row(), board(), sets:set(pos())) -> string().
-format_line(Row, Board = {_Rows, Cols, _Data}, Visible) ->
-    lists:flatmap(fun (Col) ->
-                          Pos = make_pos(Row, Col),
-                          Cell = get_cell(Board, Pos),
-                          Neighbours = board_neighbours(Board, Pos),
-                          Mines = count_mines(Neighbours),
-                          Is_Visible = sets:is_element(Pos, Visible),
-                          format_cell(Cell, Mines, Is_Visible)
-                  end,
-                  lists:seq(1, Cols)).
-
--ifdef('TEST').
-
-format_line_test() ->
-    Row = 1,
-    Board = {3, 3, [empty, empty, mine,
-                    empty, empty, mine,
-                    empty, empty, empty]},
-    Visible = sets:from_list([{1,1},{1,2},
-                              {2,1},{2,2},
-                              {3,1},{3,2},{3,3}]),
-    ?assertEqual(".2#", format_line(Row, Board, Visible)).
-
--endif.
+%% Mark a position in the board as mine, return game result.
+%% Note mutual recursion with play/2.
+-spec mark_pos(board(), pos(), sets:set(pos()), io()) -> result().
+mark_pos(Board, Pos, Visible, IO) ->
+    %% stub
+    play(Board, Visible, IO).
 
 %% Produce the neighbouring cells of a Pos.
 %% Ordering is implementation defined.
@@ -264,43 +251,6 @@ count_mines_test_() ->
      ?_assertEqual(2, count_mines([mine, mine]))].
 
 -endif.
-
-%% Produce a string from a cell in the board.
-%% # = invisible
-%% * = visible mine = BOOM!
-%% . = no mines in neighbouring cells
-%% 4 = 4 mines in neighbouring cells
--spec format_cell(cell(), integer(), boolean()) -> string().
-format_cell(_, _, false) ->
-    "#";
-format_cell(mine, _, true) ->
-    "*";
-format_cell(empty, 0, true) ->
-    ".";
-format_cell(empty, Count, true) when Count > 0 ->
-    io_lib:write(Count).
-
--ifdef('TEST').
-
-format_cell_test_() ->
-    [?_assertEqual("#", format_cell(empty, 0, false)),
-     ?_assertEqual("#", format_cell(mine, 0, false)),
-     ?_assertEqual("#", format_cell(empty, 3, false)),
-     ?_assertEqual("#", format_cell(mine, 3, false)),
-     ?_assertEqual(".", format_cell(empty, 0, true)),
-     ?_assertEqual("3", format_cell(empty, 3, true)),
-     ?_assertEqual("*", format_cell(mine, 0, true)),
-     ?_assertEqual("*", format_cell(mine, 3, true))].
-
--endif.
-
-%% Produce a {Row, Col} asked from user.
-%% Caution: side effects.
-%% Tested manually.
--spec ask_coordinates() -> pos().
-ask_coordinates() ->
-    {ok, [Row, Col]} = io:fread("Row Col: ", "~d ~d"),
-    make_pos(Row, Col).
 
 %% Produce a cell in the position Row, Col from the Board.
 -spec get_cell(board(), pos()) -> cell().
