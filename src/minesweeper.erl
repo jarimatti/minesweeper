@@ -7,6 +7,15 @@
          board_neighbours/2,
          count_mines/1]).
 
+-export_type([board/0,
+              cell/0,
+              col/0,
+              input/0,
+              mine_prob/0,
+              pos/0,
+              result/0,
+              row/0]).
+
 -ifdef('TEST').
 -include_lib("eunit/include/eunit.hrl").
 -endif.
