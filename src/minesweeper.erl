@@ -24,17 +24,17 @@
 
 %% Row is Integer[1,30].
 %% interp. the row coordinate.
--type row() :: non_neg_integer().
+-type row() :: 1..30.
 
 %% Col is Integer[1,30].
 %% interp. the column coordinate.
--type col() :: non_neg_integer().
+-type col() :: 1..30.
 
 %% Pos is {Row, Col}.
 %% interp. Position in the board.
 -type pos() :: {row(), col()}.
 
-make_pos(Row, Col) when 0 < Row, Row =< 30, 0 < Col, Col =< 30 ->
+make_pos(Row, Col) ->
     {Row, Col}.
 
 %% Board is {Row, Col, [Cell]}.
@@ -46,7 +46,7 @@ make_pos(Row, Col) when 0 < Row, Row =< 30, 0 < Col, Col =< 30 ->
 
 %% MineProb is Integer[0,100].
 %% interp. The propotion / probability of mines in the board, from 0% to 100%.
--type mine_prob() :: non_neg_integer().
+-type mine_prob() :: 0..100.
 
 %% Result is a tuple of
 %% - atom victory or atom defeat
@@ -63,12 +63,9 @@ make_pos(Row, Col) when 0 < Row, Row =< 30, 0 < Col, Col =< 30 ->
 %%         quit quits the game
 -type input() :: quit | {mark, pos()} | {open, pos()}.
 
-%% IO is a tuple of
-%%  - show_board/2
-%%  - user_input/0
-%% interp. show_board/2 displays the board to the user
-%%         user_input/0 gets the user input
--type io() :: {fun((board(), sets:set(pos())) -> ok), fun(() -> input())}.
+%% IO is a Module.
+%% interp. The IO module to use.
+-type io() :: module().
 
 %%--------------------------------------------------------------------
 %% Public Functions (API)

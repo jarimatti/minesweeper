@@ -10,6 +10,10 @@
 
 -export([start_game/3, show_board/2, get_input/0]).
 
+-ifdef('TEST').
+-include_lib("eunit/include/eunit.hrl").
+-endif.
+
 
 %%%-------------------------------------------------------------------
 %%% API
