@@ -1,0 +1,12 @@
+{application, minesweeper,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { minesweeper_app, []}},
+  {env, []}
+ ]}.

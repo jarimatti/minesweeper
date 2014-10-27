@@ -1,6 +1,13 @@
 # Binaries
-bin/
+ebin/
 *.beam
 
 # Temporary files
 *~
+
+# Rebar and erlang.mk
+rebar
+erlang.mk
+
+# EUnit directory
+.eunit/
