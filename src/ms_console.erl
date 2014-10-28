@@ -82,27 +82,92 @@ show_board(Board) ->
     io:format(format_board(Board)).
 
 %% Produce a multi-line string representation of the visible board.
+%%
+%% This need not be particularly efficient, hence the list appending,
+%% flatmapping, flattening are acceptable.
 -spec format_board(ms_server:ui_board()) -> string().
-format_board(Board = {Rows, _Cols, _Data}) ->
-    lists:flatmap(fun (Row) ->
-                          format_line(Row, Board) ++ "\n"
-                  end,
-                  lists:seq(1, Rows)).
+format_board(Board = {Rows, Cols, _Data}) ->
+    RowDigits = digits(Rows),
+    Header = format_column_headers(Cols, RowDigits),
+    Footer = format_board_footer(Cols, RowDigits),
+    Data = lists:flatmap(fun (Row) ->
+                                 RowHeader = format_row_header(Row, RowDigits),
+                                 RowData = format_row_data(Row, Board),
+                                 RowHeader ++ "|" ++ RowData ++ "|\n"
+                         end,
+                         lists:seq(1, Rows)),
+    Header ++ Footer ++ Data ++ Footer.
 
 -ifdef('TEST').
 
 format_board_test() ->
     Board = {2, 3, [0, 1, hidden,
                     0, 1, flag]},
-    Expected = ".1#\n.1x\n",
+    Expected = "  123\n +---+\n1|.1#|\n2|.1x|\n +---+\n",
     Actual = format_board(Board),
     ?assertEqual(Expected, Actual).
 
 -endif.
 
+format_column_headers(Cols, RowDigits) ->
+    ColDigits = digits(Cols),
+    Spaces = lists:duplicate(RowDigits + 1, $ ),
+    ColRowNumbers =
+        fun (Scaler) ->
+                fun (Col) ->
+                        Rem = trunc(math:pow(10, Scaler)),
+                        Div = trunc(math:pow(10, Scaler - 1)),
+                        (Col rem Rem) div Div
+                end
+        end,
+    FormatColRow =
+        fun (Scaler) ->
+                Digits = lists:map(ColRowNumbers(Scaler),
+                                   lists:seq(1, Cols)),
+                Data = column_header_row(Digits),
+                Spaces ++ Data ++ "\n"
+        end,
+    lists:flatmap(FormatColRow,
+                  lists:reverse(lists:seq(1, ColDigits))).
+
+-ifdef('TEST').
+
+format_column_headers_test_() ->
+    [?_assertEqual("  12\n", format_column_headers(2, 1)),
+     ?_assertEqual("           11\n  12345678901\n", format_column_headers(11, 1))].
+
+-endif.
+
+%% Produce a string from list of digits, replacing initial 0 as spaces.
+-spec column_header_row([non_neg_integer()]) -> string().
+column_header_row(X) ->
+    column_header_row(X, initial_zeroes, "").
+
+column_header_row([], _, Acc) ->
+    Acc;
+column_header_row([0 | Rest], initial_zeroes, Acc) ->
+    column_header_row(Rest, initial_zeroes, Acc ++ " ");
+column_header_row([X | Rest], _, Acc) ->
+    Digit = lists:flatten(io_lib:format("~B", [X])),
+    column_header_row(Rest, non_zeroes, Acc ++ Digit).
+
+%% Produce a row footer, given the amount of Cols and digits for rows.
+format_board_footer(Cols, RowDigits) ->
+    Spaces = lists:duplicate(RowDigits, $ ),
+    Bar = lists:duplicate(Cols, $-),
+    Spaces ++ "+" ++ Bar ++ "+\n".
+
+-ifdef('TEST').
+
+format_board_footer_test() ->
+    Expected = "  +----+\n",
+    ?assertEqual(Expected, format_board_footer(4, 2)).
+
+-endif.
+
 %% Produce a string from a row in the board.
--spec format_line(ms_server:row(), ms_server:ui_board()) -> string().
-format_line(Row, Board = {_Rows, Cols, _Data}) ->
+-spec format_row_data(ms_server:row(), ms_server:ui_board()) -> string().
+format_row_data(Row, Board = {_Rows, Cols, _Data}) ->
     lists:flatmap(fun (Col) ->
                           Cell = board_cell(Board, Row, Col),
                           format_cell(Cell)
@@ -111,14 +176,46 @@ format_line(Row, Board = {_Rows, Cols, _Data}) ->
 
 -ifdef('TEST').
 
-format_line_test() ->
+format_row_data_test() ->
     Row = 1,
     Board = {3, 3, [0, 2, hidden,
                     0, 2, mine,
                     0, 1, 1]},
-    ?assertEqual(".2#", format_line(Row, Board)).
+    ?assertEqual(".2#", format_row_data(Row, Board)).
 
 -endif.
+
+%% Produce a row header, without separator character.
+-spec format_row_header(ms_server:row(), non_neg_integer()) -> string().
+format_row_header(Row, RowDigits) ->
+    lists:flatten(io_lib:format("~*B", [RowDigits, Row])).
+
+-ifdef('TEST').
+
+format_row_header_test_() ->
+    [?_assertEqual("2", format_row_header(2, 1)),
+     ?_assertEqual(" 5", format_row_header(5, 2)),
+     ?_assertEqual("13", format_row_header(13, 2))].
+
+-endif.
+
+%% Produce the number of digits in the number.
+-spec digits(non_neg_integer()) -> non_neg_integer().
+digits(0) ->
+    1;
+digits(X) when X > 0 ->
+    trunc(math:log10(X)) + 1.
+
+-ifdef('TEST').
+
+digits_test_() ->
+    [?_assertEqual(1, digits(0)),
+     ?_assertEqual(1, digits(9)),
+     ?_assertEqual(2, digits(10)),
+     ?_assertEqual(2, digits(19))].
+
+-endif.
+
 
 %% Produce a string from a cell in the board.
 %% # = invisible
