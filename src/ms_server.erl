@@ -205,6 +205,7 @@ quit(Pid) ->
 %%--------------------------------------------------------------------
 -spec init({row(), col(), mine_prob()}) -> {ok, #state{}}.
 init({Rows, Cols, MineProb}) ->
+    random:seed(now()),
     {ok, #state{board = create_board(Rows, Cols, MineProb),
                 visible = empty_visible(),
                 flagged = empty_flagged()}}.
