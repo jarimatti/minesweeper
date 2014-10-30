@@ -20,7 +20,15 @@ Run tests using rebar:
 
     rebar eu
 
-Code coverage is enabled by default and can be found in file `.eunit/index.html`.
+Code coverage is enabled by default and can be found in file
+`.eunit/index.html`.
+
+The EUnit tests are currently mixed with the application code and
+conditionally compiled. The reason for the initial decision is based
+on the method presented in course
+["Introduction to Systematic Program Design - Part 1"](https://www.coursera.org/course/programdesign)
+by Gregor Kiczales. The tests will probably be separated into own
+files in the future.
 
 # Usage
 
