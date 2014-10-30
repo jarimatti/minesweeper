@@ -47,21 +47,23 @@ start_game(R, C, P) ->
 %% Play the game until quit, defeated or won.
 %% Caution: side effects.
 -spec play(pid(), ms_server:ui_state()) -> {ok, victory | defeat | quit}.
-play(Pid, {continue, Board}) ->
+play(Pid, State = {continue, Board}) ->
     show_board(Board),
     case get_input() of
         quit ->
             ms_server:quit(Pid),
             {ok, quit};
+        print ->
+            play(Pid, State);
         {open, Pos} ->
-            {ok, State} = ms_server:open(Pid, Pos),
-            play(Pid, State);
+            {ok, NewState} = ms_server:open(Pid, Pos),
+            play(Pid, NewState);
         {flag, Pos} ->
-            {ok, State} = ms_server:flag(Pid, Pos),
-            play(Pid, State);
+            {ok, NewState} = ms_server:flag(Pid, Pos),
+            play(Pid, NewState);
         {unflag, Pos} ->
-            {ok, State} = ms_server:clear_flag(Pid, Pos),
-            play(Pid, State)
+            {ok, NewState} = ms_server:clear_flag(Pid, Pos),
+            play(Pid, NewState)
     end;
 play(Pid, {victory, Board}) ->
     show_board(Board),
@@ -255,9 +257,10 @@ format_cell_test_() ->
 %% Tested manually.
 -spec get_input() -> {flag | open | unflag, ms_server:pos()} | quit.
 get_input() ->
-    {ok, Command, Params} = io_lib:fread(
-                              "~s",
-                              io:get_line("[u]nflag / [f]lag / [o]pen r c or [q]uit: ")),
+    {ok, Command, Params} =
+        io_lib:fread(
+          "~s",
+          io:get_line("[u]nflag / [f]lag / [o]pen r c or [q]uit: ")),
     case hd(Command) of
         "f" ->
             get_input_pos(flag, Params);
@@ -265,6 +268,8 @@ get_input() ->
             get_input_pos(open, Params);
         "u" ->
             get_input_pos(unflag, Params);
+        "p" ->
+            print;
         "q" ->
             quit;
         _ ->
@@ -294,6 +299,7 @@ print_help() ->
     io:format("  f 2 3   flags cell at row 2 column 3 as a mine~n"),
     io:format("  u 2 3   clears flag from cell at row 2 column 3~n"),
     io:format("  o 2 3   opens cell at row 2 column 3~n"),
+    io:format("  p       display the board again~n"),
     io:format("  q       quits the game~n").
 
 
