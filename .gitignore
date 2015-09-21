@@ -7,7 +7,15 @@ ebin/
 
 # Rebar and erlang.mk
 rebar
+.rebar/
 erlang.mk
+
 
 # EUnit directory
 .eunit/
+
+# Dependencies.
+deps/
+
+# The built release
+rel/minesweeper

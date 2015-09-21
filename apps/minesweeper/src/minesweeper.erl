@@ -125,7 +125,7 @@ open_pos(Board, Pos, Visible, IO) ->
 %% Mark a position in the board as mine, return game result.
 %% Note mutual recursion with play/2.
 -spec mark_pos(board(), pos(), sets:set(pos()), io()) -> result().
-mark_pos(Board, Pos, Visible, IO) ->
+mark_pos(Board, _Pos, Visible, IO) ->
     %% stub
     play(Board, Visible, IO).
 
