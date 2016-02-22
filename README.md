@@ -10,15 +10,15 @@ console interface is done.
 
 # Compile
 
-Build e.g. using rebar:
+Build using make:
 
-    rebar compile
+    make
 
 # Run EUnit Tests
 
-Run tests using rebar:
+Run tests:
 
-    rebar eu
+    make tests
 
 Code coverage is enabled by default and can be found in file
 `.eunit/index.html`.
@@ -30,12 +30,15 @@ on the method presented in course
 by Gregor Kiczales. The tests will probably be separated into own
 files in the future.
 
+# Run the application release Erlang shell
+
+Simple:
+
+    make run
+
 # Usage
 
 ## Console UI
-
-After building start Erlang VM, load modules `ms_server` and
-`ms_console`, then start the game.
 
 Start the game with function `ms_console:start_game(Rows, Cols,
 MineProb)`, where `Rows` is the row count, `Cols` is the column count
@@ -67,7 +70,8 @@ Commands:
 
 Start a game with 10 rows, 20 columns and 10 percent probability for mines:
 
-    $ erl -pa ebin
+    $ make run
+    ...
     Erlang/OTP 17 [erts-6.1] [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false]
 
     Eshell V6.1  (abort with ^G)
