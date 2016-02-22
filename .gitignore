@@ -5,11 +5,13 @@ ebin/
 # Temporary files
 *~
 
+# OS X cruft
+.DS_Store
+
 # Rebar and erlang.mk
 rebar
 .rebar/
 erlang.mk
-
 
 # EUnit directory
 .eunit/

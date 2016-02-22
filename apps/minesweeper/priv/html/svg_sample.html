@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+  </head>
+  <body onload="setup()">
+    <h1>SVG example</h1>
+    
+    <div id="controls">
+      <button onclick="start_new_game();">New Game</button>
+    </div>
+    
+    <div id="svg-container">
+      <svg id="minefield" width="1000" height="1000" style="border:solid black 1px" viewbox="0 0 1000 1000">
+        <defs id="minefield-tiles" />
+      
+      </svg>
+    </div>
+    
+    <script type="text/javascript">
+      function setup() {
+        var x = document.getElementById("stuff");
+
+        
+      };
+    </script>
+    
+    <script lang="javascript">
+      var minefield_id = "minefield";
+      
+      // Data definitions
+      
+      // A Cell is one of:
+      // - mine
+      // - unknown
+      // - empty
+      // - Integer = the amount of neighbouring mines
+      var cell_mine = "mine";
+      var cell_hidden = "hidden";
+      var cell_empty = "empty";
+      var cell_neighbours = 3;
+      
+      function cell_template(cell) {
+        switch (cell) {
+          case "mine":
+            // Cell is a mine
+            break;
+          case "unknown":
+            // Cell is unknown
+            break;
+          case "empty":
+            // Cell is empty
+            break;
+          default:
+            // Cell is number of neighbours
+            break;
+        }
+      }
+      
+      // A Minefield is [[Cell]].
+      // interp. A 2D-array of cells.
+      var minefield_sample = [
+        ["mine", "hidden", "empty"],
+        [1, 1, "empty"],
+        ["empty", "empty", "empty"]
+      ];
+      
+      function minefield_template(minefield) {
+        minefield.forEach(function (minefield_row) {
+          row.forEach(function (cell) {
+            cell_template(cell);
+          });
+        });
+      }
+      
+      // Functions
+      
+      // Produce the SVG use element for cell in row, col.
+      function cell_to_use(row, col, cell) {
+        
+        var c = document.createElementNS("http://www.w3.org/2000/svg", "use");
+
+        var x = 50 * col + 10 * (col + 1);
+        var y = 50 * row + 10 * (row + 1);
+
+        c.x.baseVal.value = x;
+        c.y.baseVal.value = y;
+        
+        var link = "minesweeper_tiles.svg#";
+        switch (cell) {
+          case "mine":
+            link += "ExplodedMine";
+            break;
+          case "hidden":
+            link += "UnknownCell";
+            c.onclick = function () {
+              open_cell(row, col);
+            };
+            c.oncontextmenu = function(e) {
+              e.stopPropagation();
+              mark_cell(row, col);
+              return false;
+            };
+            break;
+          case "flag":
+            link += "Flag";
+            c.oncontextmenu = function(e) {
+              e.stopPropagation();
+              unmark_cell(row, col);
+              return false;
+            };
+            break;
+          case "false_flag":
+            link += "FalseFlag";
+            break;
+          case "empty":
+            link += "EmptyCell";
+            break;
+          default:
+            link += cell;
+            break;
+        }
+        c.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", link);        
+      
+        return c;
+      }
+      
+      // Produce the minefield HTML data inside element minefield_id.
+      function render_minefield(minefield) {
+        var minefield_element = document.getElementById(minefield_id);
+        
+        clearMinefield(minefield_element);
+
+        minefield.forEach(function (row, i) {
+          row.forEach(function (cell, j) {
+            var cell = cell_to_use(i + 1, j + 1, cell);
+            minefield_element.appendChild(cell);
+          });
+        });
+      }
+      
+      // Side effect: clear the minefield.
+      function clearMinefield(mf) {
+        var cs = mf.childNodes;
+
+        var a = [];
+        for (var i = 0; i < cs.length; i++) {
+          a[i] = cs.item(i);
+        }
+
+        a.forEach(function (n) {
+          if (n.nodeName != "defs") {
+            console.log("removing");
+            mf.removeChild(n);
+          }
+        });
+      };
+      
+      function start_new_game() {
+        var request = new_request();
+        request.open('POST', '/api/new', true);
+        request.send();
+      }
+      
+      // Send an open command.
+      function open_cell(row, col) {
+        var request = new_request();
+        request.open('POST', '/api/open', true);
+        request.send(JSON.stringify({'row': row, 'col': col}));
+      }
+      
+      // Send a mark command.
+      function mark_cell(row, col) {
+        var request = new_request();
+        request.open('POST', '/api/mark', true);
+        request.send(JSON.stringify({'row': row, 'col': col}));
+      }
+      
+      // Send an unmark command.
+      function unmark_cell(row, col) {
+        var request = new_request();
+        request.open('POST', '/api/unmark', true);
+        request.send(JSON.stringify({'row': row, 'col': col}));
+      }
+      
+      // Produce a new XMLHttpRequest, which renders the board on response.
+      function new_request() {
+        var request = new XMLHttpRequest();
+        request.onreadystatechange = function(event) {
+          if (request.readyState == 4 && request.status == 200) {
+            var data = JSON.parse(request.responseText);
+            var state = data.state;
+            var board = data.board;
+            var minefield = parse_minefield(board.rows, board.cols, board.data);
+            render_minefield(minefield);
+          } else if (request.readyState == 4) {
+            console.log("Error (HTTP code " + request.status + "): " + request.responseText);
+          }
+        };
+        return request;
+      }
+      
+      // Produce a 2D-array of the server sent minefield.
+      function parse_minefield(rows, cols, data) {
+        var minefield = [];
+        for (var row = 0; row < rows; row++) {
+          var row_data = [];
+          for (var col = 0; col < cols; col++) {
+            row_data.push(data[row*cols + col]);
+          }
+          minefield.push(row_data);
+        }
+        return minefield;
+      }
+    </script>
+      
+  </body>
+</html>
