@@ -12,6 +12,7 @@ ebin/
 rebar
 .rebar/
 erlang.mk
+.erlang.mk/
 
 # EUnit directory
 .eunit/
@@ -20,4 +21,9 @@ erlang.mk
 deps/
 
 # The built release
-rel/minesweeper
+_rel/
+relx
+
+.minesweeper.plt
+minesweeper.d
+

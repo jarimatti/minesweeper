@@ -1,11 +1,13 @@
 {application, minesweeper,
  [
-  {description, ""},
-  {vsn, "1"},
+  {description, "Minesweeper game."},
+  {vsn, "0.0.1"},
+  {modules, []},
   {registered, []},
   {applications, [
                   kernel,
-                  stdlib
+                  stdlib,
+                  cowboy
                  ]},
   {mod, { minesweeper_app, []}},
   {env, []}
