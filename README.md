@@ -20,9 +20,6 @@ Run tests:
 
     make tests
 
-Code coverage is enabled by default and can be found in file
-`.eunit/index.html`.
-
 The EUnit tests are currently mixed with the application code and
 conditionally compiled. The reason for the initial decision is based
 on the method presented in course

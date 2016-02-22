@@ -4,6 +4,7 @@ PROJECT_VERSION = 0.0.1
 
 DEPS = cowboy
 
+COVER = 1
 SP = 4
 
 include erlang.mk
