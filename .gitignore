@@ -8,8 +8,7 @@ ebin/
 # OS X cruft
 .DS_Store
 
-# Build & related stuff
-erlang.mk
+# Erlang.mk
 .erlang.mk/
 
 # Test & Coverage stuff

@@ -86,7 +86,7 @@
         c.x.baseVal.value = x;
         c.y.baseVal.value = y;
         
-        var link = "minesweeper_tiles.svg#";
+        var link = "minesweeper.svg#";
         switch (cell) {
           case "mine":
             link += "ExplodedMine";
@@ -150,7 +150,6 @@
 
         a.forEach(function (n) {
           if (n.nodeName != "defs") {
-            console.log("removing");
             mf.removeChild(n);
           }
         });

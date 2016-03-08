@@ -3,12 +3,12 @@
   {description, "Minesweeper game."},
   {vsn, "0.0.1"},
   {modules, []},
-  {registered, []},
+  {registered, [ms_session, ms_server_sup, minesweeper_sup]},
   {applications, [
                   kernel,
                   stdlib,
                   cowboy
                  ]},
-  {mod, { minesweeper_app, []}},
+  {mod, {minesweeper_app, []}},
   {env, []}
  ]}.
