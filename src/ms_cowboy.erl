@@ -36,7 +36,8 @@ init(_, Req, []) ->
 handle(Req, State = no_state) ->
     {Action, Req2} = cowboy_req:binding(action, Req),
     {Method, Req3} = cowboy_req:method(Req2),
-    method(Method, Action, Req3, State).
+    {SessionID, Req4} = session_id(Req3),
+    method(SessionID, Method, Action, Req4, State).
 
 
 terminate(_Reason, _Req, no_state) ->
@@ -67,45 +68,42 @@ validate_action(_) ->
 
 
 %% 
--spec method(binary(), undefined | action(), cowboy_req:req(), state()) ->
+-spec method(pid() | undefined,
+             binary(),
+             undefined | action(),
+             cowboy_req:req(),
+             state()) ->
                     {ok, cowboy_req:req(), state()}.
-method(<<"GET">>, status, Req, no_state) ->
+method(_SessionID, <<"GET">>, status, Req, no_state) ->
     {ok, Req2} = cowboy_req:reply(
                    200,
                    [text_plain()],
                    <<"Status: OK">>,
                    Req),
     {ok, Req2, no_state};
-method(<<"POST">>, new, Req, no_state) ->
-    {SessionID, Req2} = session_id(Req),
+method(SessionID, <<"POST">>, new, Req, no_state) ->
     ok = stop_game(SessionID),
     {NewSession, Pid} = start_new_game(),
-    Req3 = set_session_id(NewSession, Req2),
+    Req2 = set_session_id(NewSession, Req),
     {ok, State} = ms_server:get_board(Pid),
-    {ok, Req4} = reply(200, State, Req3),
-    {ok, Req4, no_state};
-method(<<"POST">>, open, Req, no_state) ->
-    {SessionID, Req2} = session_id(Req),
-    {ok, {Row, Col}, Req3} = parse_row_col(Req2),
+    {ok, Req3} = reply(200, State, Req2),
+    {ok, Req3, no_state};
+method(SessionID, <<"POST">>, open, Req, no_state) ->
+    {ok, {Row, Col}, Req2} = parse_row_col(Req),
     {ok, Game} = ms_session:get(SessionID),
-    {ok, State} = ms_server:open(Game, ms_server:make_pos(Row, Col)),
-    {ok, Req4} = reply(200, State, Req3),
-    {ok, Req4, no_state};
-method(<<"POST">>, mark, Req, no_state) ->
-    {SessionID, Req2} = session_id(Req),
-    {ok, {Row, Col}, Req3} = parse_row_col(Req2),
+    {ok, Req3} = method_with_session(Game, Req2, fun (G) -> ms_server:open(G, ms_server:make_pos(Row, Col)) end),
+    {ok, Req3, no_state};
+method(SessionID, <<"POST">>, mark, Req, no_state) ->
+    {ok, {Row, Col}, Req2} = parse_row_col(Req),
     {ok, Game} = ms_session:get(SessionID),
-    {ok, State} = ms_server:flag(Game, ms_server:make_pos(Row, Col)),
-    {ok, Req4} = reply(200, State, Req3),
-    {ok, Req4, no_state};
-method(<<"POST">>, unmark, Req, no_state) ->
-    {SessionID, Req2} = session_id(Req),
-    {ok, {Row, Col}, Req3} = parse_row_col(Req2),
+    {ok, Req3} = method_with_session(Game, Req2, fun (G) -> ms_server:flag(G, ms_server:make_pos(Row, Col)) end),
+    {ok, Req3, no_state};
+method(SessionID, <<"POST">>, unmark, Req, no_state) ->
+    {ok, {Row, Col}, Req2} = parse_row_col(Req),
     {ok, Game} = ms_session:get(SessionID),
-    {ok, State} = ms_server:clear_flag(Game, ms_server:make_pos(Row, Col)),
-    {ok, Req4} = reply(200, State, Req3),
-    {ok, Req4, no_state};
-method(_, _, Req, no_state) ->
+    {ok, Req3} = method_with_session(Game, Req2, fun (G) -> ms_server:clear_flag(G, ms_server:make_pos(Row, Col)) end),
+    {ok, Req3, no_state};
+method(_, _, _, Req, no_state) ->
     {ok, Req2} = cowboy_req:reply(
                    400,
                    [text_plain()],
@@ -215,3 +213,17 @@ parse_row_col(Req) ->
     Row = maps:get(<<"row">>, Map),
     Col = maps:get(<<"col">>, Map),
     {ok, {Row, Col}, Req2}.
+
+
+%% Produce 400 error if session is undefined, otherwise handle call.
+
+
+method_with_session(undefined, Req, _Fun) -> 
+    cowboy_req:reply(
+      400,
+      [text_plain()],
+      <<"Illegal API method.">>,
+      Req);
+method_with_session(Pid, Req, Fun) ->
+    {ok, State} = Fun(Pid),
+    reply(200, State, Req).

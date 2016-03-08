@@ -24,7 +24,30 @@
 
 -type id() :: integer().
 
--type state() :: dict:dict(integer(), pid()).
+-type sessions() :: dict:dict(id(), #{ref => reference(), pid => pid()}).
+
+-record(state, {
+          sessions :: sessions(),
+          next_id :: id()
+         }).
+-type state() :: #state{}.
+
+
+-spec state(id(), sessions()) -> state().
+state(Id, Sessions) ->
+    #state{next_id = Id, sessions = Sessions}.
+
+-spec sessions(state()) -> sessions().
+sessions(#state{sessions = S}) ->
+    S.
+
+-spec sessions(sessions(), state()) -> state().
+sessions(S, State) ->
+    State#state{sessions = S}.
+
+-spec next_id(state()) -> id().
+next_id(#state{next_id = ID}) ->
+    ID.
 
 
 %%%===================================================================
@@ -69,7 +92,7 @@ remove(SessionID) ->
 %%--------------------------------------------------------------------
 -spec init([]) -> {ok, state()}.
 init([]) ->
-    {ok, dict:new()}.
+    {ok, state(1, dict:new())}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -85,23 +108,25 @@ init([]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({new, Game}, _From, Sessions) ->
-    SessionID = dict:size(Sessions) + 1,
+handle_call({new, Game}, _From, State) ->
+    Sessions = sessions(State),
+    SessionID = next_id(State),
     MonitorRef = monitor(process, Game),
     NewSessions = dict:store(SessionID,
                              #{pid => Game, ref => MonitorRef},
                              Sessions),
     Reply = {ok, SessionID},
-    {reply, Reply, NewSessions};
-handle_call({get, SessionID}, _From, Sessions) ->
-    Game = case dict:find(SessionID, Sessions) of
+    NewState = state(SessionID + 1, NewSessions),
+    {reply, Reply, NewState};
+handle_call({get, SessionID}, _From, State) ->
+    Game = case dict:find(SessionID, sessions(State)) of
                error ->
                    undefined;
                {ok, #{pid := Pid}} ->
                    Pid
            end,
     Reply = {ok, Game},
-    {reply, Reply, Sessions}.
+    {reply, Reply, State}.
 
 
 %%--------------------------------------------------------------------
@@ -114,7 +139,8 @@ handle_call({get, SessionID}, _From, Sessions) ->
 %%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_cast({remove, SessionID}, Sessions) ->
+handle_cast({remove, SessionID}, State) ->
+    Sessions = sessions(State),
     case dict:find(SessionID, Sessions) of
         error ->
             ok;
@@ -122,7 +148,7 @@ handle_cast({remove, SessionID}, Sessions) ->
             demonitor(MRef)
     end,
     NewSessions = dict:erase(SessionID, Sessions),
-    {noreply, NewSessions}.
+    {noreply, sessions(NewSessions, State)}.
 
 
 %%--------------------------------------------------------------------
@@ -135,11 +161,12 @@ handle_cast({remove, SessionID}, Sessions) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_info({'DOWN', MonitorRef, process, Pid, _Info}, Sessions)
+handle_info({'DOWN', MonitorRef, process, Pid, _Info}, State)
   when is_pid(Pid) ->
+    Sessions = sessions(State),
     SessionID = fetch_by_ref(MonitorRef, Sessions),
     NewSessions = dict:erase(SessionID, Sessions),
-    {noreply, NewSessions};
+    {noreply, sessions(NewSessions, State)};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -155,10 +182,10 @@ handle_info(_Info, State) ->
 %% @spec terminate(Reason, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
-terminate(_Reason, Sessions) ->
-    dict:map(fun (_K, V = #{ref := MRef}) ->
-                     demonitor(MRef),
-                     V
+terminate(_Reason, State) ->
+    Sessions = sessions(State),
+    _ = dict:map(fun (_K, #{ref := MRef}) ->
+                     demonitor(MRef)
              end,
              Sessions),
     ok.
@@ -180,7 +207,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 
 %% Produce the SessionID or not_found if MonitorRef is not found.
--spec fetch_by_ref(reference(), state()) -> id().
+-spec fetch_by_ref(reference(), sessions()) -> id().
 fetch_by_ref(MRef, Sessions) ->
     dict:fold(fun (K, #{ref := MRef2}, not_found) when MRef == MRef2 ->
                       K;
