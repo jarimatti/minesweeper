@@ -6,7 +6,7 @@ mine positions. The game is over when all mines are marked and empty
 positions revealed or a mine is revealed.
 
 This is still work in progress. For the time being only a simple
-console interface is done.
+console interface and initial web UI are done.
 
 # Compile
 
@@ -34,6 +34,22 @@ Simple:
     make run
 
 # Usage
+
+## Web UI
+
+The game starts a web server in [http://localhost:8080](http://localhost:8080).
+Open a browser there and start a new game by clickin the "New game" button.
+
+Playing the game should feel familiar: left clicking on a gray square opens it
+and hopefully does not reveal a mine. Right clicking on a gray square flags it
+as a mine or removes the flag.
+
+The only indication of a won game is that all the cells have been successfully
+opened and mines flagged. This is still a work in progress.
+
+The gray squares are unknown, white squares are opened and a possible number in
+a white square tells how many mines are in adjacent squares.
+
 
 ## Console UI
 
