@@ -478,7 +478,7 @@ create_board_test_() ->
 %% P is Integer[0, 100].
 -spec initial_cell(mine_prob()) -> cell().
 initial_cell(P) ->
-    case random:uniform(100) < P of
+    case rand:uniform(100) < P of
         true ->
             mine;
         false ->

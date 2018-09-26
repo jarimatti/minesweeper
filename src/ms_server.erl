@@ -205,15 +205,9 @@ quit(Pid) ->
 %%--------------------------------------------------------------------
 -spec init({row(), col(), mine_prob()}) -> {ok, #state{}}.
 init({Rows, Cols, MineProb}) ->
-    init_random(),
     {ok, #state{board = create_board(Rows, Cols, MineProb),
                 visible = empty_visible(),
                 flagged = empty_flagged()}}.
-
-init_random() ->
-    random:seed(erlang:phash2([node()]),
-                erlang:monotonic_time(),
-                erlang:unique_integer()).
 
 %%--------------------------------------------------------------------
 %% @private
@@ -335,7 +329,7 @@ create_board_test_() ->
 %% P is Integer[0, 100].
 -spec initial_cell(mine_prob()) -> cell().
 initial_cell(P) ->
-    case random:uniform(100) < P of
+    case rand:uniform(100) < P of
         true ->
             mine;
         false ->
