@@ -8,19 +8,12 @@ ebin/
 # OS X cruft
 .DS_Store
 
-# Erlang.mk
-.erlang.mk/
-
 # Test & Coverage stuff
 eunit.coverdata
 cover/
 
-# Dependencies.
-deps/
-
-# The built release
-_rel/
-relx
+# Build artifacts.
+_build/
 
 .minesweeper.plt
 minesweeper.d

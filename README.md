@@ -10,15 +10,15 @@ console interface and initial web UI are done.
 
 # Compile
 
-Build using make:
+Build using Rebar 3:
 
-    make
+    rebar3 compile
 
 # Run EUnit Tests
 
 Run tests:
 
-    make tests
+    rebar3 eunit
 
 The EUnit tests are currently mixed with the application code and
 conditionally compiled. The reason for the initial decision is based
@@ -31,7 +31,7 @@ files in the future.
 
 Simple:
 
-    make run
+    rebar3 shell
 
 # Usage
 
@@ -83,16 +83,12 @@ Commands:
 
 Start a game with 10 rows, 20 columns and 10 percent probability for mines:
 
-    $ make run
+    $ rebar3 shell
     ...
-    Erlang/OTP 17 [erts-6.1] [source] [64-bit] [smp:4:4] [async-threads:10] [hipe] [kernel-poll:false]
+    Erlang/OTP 23 [erts-11.0.2] [source] [64-bit] [smp:12:12] [ds:12:12:10] [async-threads:1] [hipe]
 
-    Eshell V6.1  (abort with ^G)
-    1> l(ms_server).
-    {module,ms_server}
-    2> l(ms_console).
-    {module,ms_console}
-    3> ms_console:start_game(10, 20, 10).
+    Eshell V11.0.2  (abort with ^G)
+    1> ms_console:start_game(10, 20, 10).
                 11111111112
        12345678901234567890
       +--------------------+
