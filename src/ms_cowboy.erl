@@ -71,7 +71,7 @@ validate_action(forward, _) ->
              state()) ->
                     {ok, cowboy_req:req(), state()}.
 method(_SessionID, <<"GET">>, status, Req, no_state) ->
-    {ok, Req2} = cowboy_req:reply(
+    Req2 = cowboy_req:reply(
                    200,
                    text_plain(),
                    <<"Status: OK">>,
@@ -109,13 +109,13 @@ method(_, _, _, Req, no_state) ->
 
 
 %% Produce map #{content_type => <<"application/json">>}.
--spec application_json() -> {binary(), binary()}.
+-spec application_json() -> #{binary() => binary()}.
 application_json() ->
     #{<<"content-type">> => <<"application/json">>}.
 
 
 %% Produce map #{content_type => <<"text/plain">>}.
--spec text_plain() -> {binary(), binary()}.
+-spec text_plain() -> #{binary() => binary()}.
 text_plain() ->
     #{<<"content-type">> => <<"text-plain">>}.
 
@@ -175,11 +175,10 @@ format_board({Rows, Cols, Data}) ->
 -spec session_id(cowboy_req:req()) -> ms_session:id() | undefined.
 session_id(Req) ->
     Cookies = cowboy_req:parse_cookies(Req),
-    {_, Cookie} = lists:keyfind(<<"minesweeper">>, 1, Cookies),
-    SessionID = case Cookie of
-                    undefined ->
+    SessionID = case lists:keyfind(<<"minesweeper">>, 1, Cookies) of
+                    false ->
                         undefined;
-                    _ ->
+		    {_, Cookie} ->
                         binary_to_integer(Cookie)
                 end,
     SessionID.

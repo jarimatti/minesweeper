@@ -203,15 +203,13 @@ format_row_header_test_() ->
 
 %% Produce the number of digits in the number.
 -spec digits(non_neg_integer()) -> non_neg_integer().
-digits(0) ->
-    1;
 digits(X) when X > 0 ->
     trunc(math:log10(X)) + 1.
 
 -ifdef('TEST').
 
 digits_test_() ->
-    [?_assertEqual(1, digits(0)),
+    [?_assertEqual(1, digits(1)),
      ?_assertEqual(1, digits(9)),
      ?_assertEqual(2, digits(10)),
      ?_assertEqual(2, digits(19))].
@@ -255,7 +253,7 @@ format_cell_test_() ->
 %% Produce an Input asked from user.
 %% Caution: side effects.
 %% Tested manually.
--spec get_input() -> {flag | open | unflag, ms_server:pos()} | quit.
+-spec get_input() -> {flag | open | unflag, ms_server:pos()} | print | quit.
 get_input() ->
     {ok, Command, Params} =
         io_lib:fread(
