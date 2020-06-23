@@ -7,11 +7,10 @@
 
 -spec start(application:start_type(), term()) -> {ok, pid()}.
 start(_StartType, _StartArgs) ->
-    {ok, _} = cowboy:start_http(
+    {ok, _} = cowboy:start_clear(
                 minesweeper_http_listener,
-                100,
                 [{port, 8080}],
-                [{env, [{dispatch, dispatch()}]}]
+		#{env => #{dispatch => dispatch()}}
                ),
     minesweeper_sup:start_link().
 
@@ -31,7 +30,7 @@ dispatch() ->
       [{'_',
         [{
            "/api/:action",
-           [{action, function, fun ms_cowboy:validate_action/1}],
+           [{action, fun ms_cowboy:validate_action/2}],
            ms_cowboy,
            []
          },
